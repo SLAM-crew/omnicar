@@ -1,18 +1,31 @@
 <launch>
-  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_broadcaster" args="0 0 0 0 0 0 1 base_link head_camera" />
-  <include file="$(find omnicar_ros_driver)/launch/bringup.launch"/>
-  <include file="$(find ldlidar_stl_ros)/launch/ld19.launch"/>
-  <include file="$(find handsfree_ros_imu)/launch/handsfree_imu.launch" >
-      <arg name="imu_type" value="b9"/>
+  <!-- <node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" args="0 0 0 0 0 0 base_link head_camera 100" /> -->
+  <include file="$(find omnicar_ros_driver)/launch/bringup.launch"/> 
+
+  <!-- <param name="/use_sim_time" value="false" /> -->
+  <!-- Don't forget to check that port your lidar use ! -->
+  <include file="$(find ldlidar_stl_ros)/launch/ld19.launch">
+      <arg name="port_name" value="/dev/ttyUSB1"/> 
   </include>
+
+  <!-- Don't forget to check that port your IMU use ! -->
+  <include file="$(find handsfree_ros_imu)/launch/handsfree_imu.launch" >   
+      <arg name="imu_type" value="b9"/>
+      <arg name="port" value="/dev/ttyUSB2"/>
+  </include>
+
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+
   <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization">
         <rosparam command="load" file="$(find omnicar)/config/ekf_localization.yaml" />
         <remap from="/odometry/filtered" to="/odom" />
   </node>
-  <node name="camera_processing" pkg="omnicar" type="camera_processing.py" output="screen" />
   <node name="web_server" pkg="rosboard" type="rosboard_node"/>
-  <node name="gmapping" pkg="gmapping" type="slam_gmapping"/>
-  <node name="amcl" pkg="amcl" type="amcl"/>
+  <node name="gmapping" pkg="gmapping" type="slam_gmapping" output="screen"/>
+  <node name="amcl" pkg="amcl" type="amcl">
+    <param name="use_map_topic" value="true"/>
+    <param name="tf_broadcast" value="false"/>
+  </node>
   <node name="move_base" pkg="move_base" type="move_base" respawn="false" output="screen" >
       <rosparam file="$(find omnicar)/config/move_base/costmap_common_params.yaml" command="load" ns="global_costmap" /> 
       <rosparam file="$(find omnicar)/config/move_base/costmap_common_params.yaml" command="load" ns="local_costmap" />
@@ -20,4 +33,5 @@
       <rosparam file="$(find omnicar)/config/move_base/global_costmap_params.yaml" command="load" /> 
       <rosparam file="$(find omnicar)/config/move_base/base_local_planner_params.yaml" command="load" />
   </node>
+  
 </launch>
